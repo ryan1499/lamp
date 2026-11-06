@@ -15,6 +15,10 @@ Big tech sits between us and the people we'd connect with, and it profits from k
 - **Room:** ranked list of people in your room with the reason you'd click; add or switch rooms.
 - **Top matches:** swipeable cards with why you'd click and an opener; "Not now" is never a rejection.
 
+## Full journey demo
+
+Tap **Watch the full journey** on the first screen (or open the page with `#tour`) for a 12-step guided walkthrough: onboarding, profile, consent, lighting your lamp, top matches, saving someone for later, the room list, a match's card, putting the phone down, switching rooms, and Lamp recognizing your usual café. The tour uses sample data and saves nothing.
+
 ## Running it
 
 `index.html` is a single file. It was built as a Claude Artifact, where it uses a shared database, viewer identity and Claude for tailored openers. Opened directly in a browser, it runs as a single-player demo with a sample room.

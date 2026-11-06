@@ -80,11 +80,19 @@ button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px soli
 .dots{display:flex;gap:5px;justify-content:center}.dots i{width:6px;height:6px;border-radius:50%;background:var(--line)}.dots i.on{background:var(--lamp)}
 .toast{position:absolute;left:50%;bottom:86px;transform:translateX(-50%);background:var(--fg);color:var(--ink);border-radius:999px;padding:8px 14px;font-size:13px;font-weight:600;z-index:9;white-space:nowrap}
 .empty{text-align:center;padding:24px 8px;display:flex;flex-direction:column;gap:8px;align-items:center}
+.coach{flex:none;margin:6px 12px 0;background:var(--lamp);color:var(--lamp-ink);border-radius:16px;padding:10px 12px;display:flex;flex-direction:column;gap:6px}
+.coach .mono{color:var(--lamp-ink);opacity:.75}
+.coach p{font-size:14px;font-weight:600;line-height:1.3}
+.coach .cb{display:flex;gap:6px}
+.coach button{font:inherit;font-size:13px;font-weight:600;border-radius:999px;padding:6px 12px;border:1px solid rgba(42,26,2,.35);background:transparent;color:var(--lamp-ink);cursor:pointer}
+.coach button.go{background:var(--lamp-ink);color:var(--lamp);border-color:var(--lamp-ink);margin-left:auto}
+.coach button:disabled{opacity:.35;cursor:default}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 
 <div class="phone" id="phone">
   <div class="notch" aria-hidden="true"><span>9:41</span><i></i><span>●●●</span></div>
+  <div class="coach" id="coach" hidden aria-live="polite"></div>
   <div class="scroll" id="screen"><p class="mute">Lamp is starting…</p></div>
   <div class="tabs" id="tabs" hidden>
     <button data-tab="lamp"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3Z"/></svg>My Lamp</button>
@@ -125,7 +133,35 @@ const PAL=["#ffb547","#7fe0b0","#b9a3ff","#7fb5ff","#ff9ac4","#ff9a66","#ffe07a"
 
 const S = {tab:"lamp", screen:null, step:0, myId:null, lamps:{}, names:{},
   me:{onboarded:false, about:"", tags:[], links:{website:"",instagram:"",linkedin:"",x:""}, lit:false, until:null, dur:"1h", bringing:"", room:"punk-hack-night", knownRooms:[]},
-  rooms:ROOMS.slice(), deck:[], di:0, saved:[], sheet:null, err:"", ai:{}, roomConfirmed:false};
+  rooms:ROOMS.slice(), deck:[], di:0, saved:[], sheet:null, err:"", ai:{}, roomConfirmed:false, tour:null, real:null};
+S.me.visits={};
+function myName(){return S.tour!=null?"You":(S.names[S.myId]||"You");}
+
+/* ---------- guided tour: the whole journey, on sample data, nothing saved ---------- */
+const TOUR=[
+  {cap:"Onboarding. First launch explains what Lamp is and what lighting your lamp means.", go(){S.me.onboarded=false;S.step=0;S.screen=null;S.sheet=null;}},
+  {cap:"Onboarding. You set up your profile once: a line about you, public links, and interests.", go(){S.step=1;S.me.about="Writer who builds; thinking about AI and human connection";S.me.tags=["AI safety","Writing","Tools for thought","Decentralization"];S.me.links={website:"",instagram:"",linkedin:"",x:""};}},
+  {cap:"Onboarding. Consent in plain words: exactly what others see while your lamp is on.", go(){S.step=2;}},
+  {cap:"My Lamp. Lamp already knows the room from your RSVP. Pick how long, add what you're bringing.", go(){S.me.onboarded=true;S.tab="lamp";S.screen=null;S.sheet=null;S.me.lit=false;S.me.until=null;S.me.room="punk-hack-night";S.me.visits={};S.me.dur="2h";S.me.bringing="Looking for people building tools that get us off our phones";}},
+  {cap:"My Lamp. One tap. You're now visible to people in this room whose lamps are also on.", go(){S.screen=null;S.tab="lamp";S.me.lit=true;S.me.until=Date.now()+120*60000;S.me.visits={"punk-hack-night":1};}},
+  {cap:"Top matches. Swipeable cards with a name, why you'd click, and an opener.", go(){S.tab="lamp";S.sheet=null;S.saved=[];S.deck=peopleInRoom().slice(0,10);S.di=0;S.screen="deck";}},
+  {cap:"Top matches. Swipe on. “Not now” is never a no, and you can save someone for later.", go(){S.screen="deck";S.di=1;S.saved=[S.deck[1]&&S.deck[1].id].filter(Boolean);}},
+  {cap:"Room. Everyone in this room with their lamp on, ranked. Not the café downstairs.", go(){S.screen=null;S.sheet=null;S.tab="room";}},
+  {cap:"Room. Tap anyone to see why you'd click. Nobody is notified that you looked.", go(){S.screen=null;S.tab="room";S.sheet=peopleInRoom()[0].id;}},
+  {cap:"Then you put your phone away and go talk.", go(){S.sheet=null;S.screen="done";}},
+  {cap:"Rooms. Walking into a café or another event? Switch rooms or paste an event link.", go(){S.screen=null;S.tab="room";S.sheet="add";}},
+  {cap:"Sunday, your usual café. Lamp knows the pattern and doesn't ask which room you're in.", go(){S.sheet=null;S.screen=null;S.tab="lamp";S.me.lit=false;S.me.until=null;S.me.room="sightglass-soma";S.me.visits={"punk-hack-night":1,"sightglass-soma":6};S.me.dur="1h";S.me.bringing="";}}
+];
+function startTour(){ if(S.tour==null) S.real=JSON.stringify({me:S.me,tab:S.tab,saved:S.saved}); S.tour=0; TOUR[0].go(); render(); }
+function tourTo(i){ S.tour=Math.max(0,Math.min(TOUR.length-1,i)); TOUR[S.tour].go(); render(); }
+function endTour(){ const r=JSON.parse(S.real||"{}"); S.tour=null; if(r.me) S.me=r.me; S.tab=r.tab||"lamp"; S.saved=r.saved||[]; S.screen=null; S.sheet=null; S.step=0; render(); }
+function vCoach(){
+  const c=document.getElementById('coach'); c.hidden=S.tour==null; if(S.tour==null){c.innerHTML="";return;}
+  const last=S.tour===TOUR.length-1;
+  c.innerHTML=`<span class="mono">Full journey · ${S.tour+1} of ${TOUR.length}</span><p>${esc(TOUR[S.tour].cap)}</p>
+    <div class="cb"><button id="t-exit">Exit</button><button id="t-prev" ${S.tour===0?"disabled":""}>Back</button><button class="go" id="t-next">${last?"Finish":"Next ›"}</button></div>`;
+  on('t-exit',endTour); on('t-prev',()=>tourTo(S.tour-1)); on('t-next',()=>last?endTour():tourTo(S.tour+1));
+}
 let db=null, user=null, sample=null;
 
 function hash(s){let h=2166136261;for(const c of s){h^=c.charCodeAt(0);h=Math.imul(h,16777619);}return h>>>0;}
@@ -155,10 +191,13 @@ function render(){
   tabs.hidden=!S.me.onboarded;
   tabs.querySelectorAll('button').forEach(b=>b.setAttribute('aria-current',b.dataset.tab===S.tab&&!S.screen?'page':'false'));
   const el=document.getElementById('screen');
-  let html = !S.me.onboarded? vOnboard() : S.screen==="deck"? vDeck() : S.tab==="room"? vRoom() : vLamp();
+  if(S.screen==="done") tabs.hidden=true;
+  let html = !S.me.onboarded? vOnboard() : S.screen==="done"? vDone() : S.screen==="deck"? vDeck() : S.tab==="room"? vRoom() : vLamp();
   if(S.sheet) html += S.sheet==="add"? vAddRoom() : vPerson(S.sheet);
   el.innerHTML = html;
+  el.scrollTop = 0;
   wire();
+  vCoach();
 }
 
 function vOnboard(){
@@ -172,7 +211,8 @@ function vOnboard(){
       <div class="roomrow"><span class="ic">👋</span><div class="t"><b>Walk over and talk</b><span class="mute">Lamp tells you why you'd click and gives you an opener. Then put your phone away.</span></div></div>
     </div>
     <div style="flex:1"></div>
-    <button class="btn" id="ob-next">Set up my lamp</button>`;
+    <button class="btn" id="ob-next">Set up my lamp</button>
+    ${S.tour==null?`<button class="btn ghost" id="tour">Watch the full journey (demo)</button>`:""}`;
   if(S.step===1) return `${st}
     <h2 style="margin-top:12px">What should people know about you?</h2>
     <p class="mute">You set this up once. Share only what you want; Lamp reads public profiles you link and nothing else.</p>
@@ -191,7 +231,7 @@ function vOnboard(){
       <p class="mute">• Your name and avatar<br>• Your one line and interests<br>• Why Lamp thinks you'd click</p>
       <p class="mute">When your lamp is off, you're invisible. Nobody is notified when you look at them or walk over.</p>
     </div>
-    <div class="card" style="flex-direction:row;align-items:center;gap:12px">${av(S.names[S.myId]||"You",48)}<div><b>${esc(S.names[S.myId]||"You")}</b><p class="mute">${esc(S.me.about||"No one-liner yet")}</p></div></div>
+    <div class="card" style="flex-direction:row;align-items:center;gap:12px">${av(myName(),48)}<div><b>${esc(myName())}</b><p class="mute">${esc(S.me.about||"No one-liner yet")}</p></div></div>
     <div style="flex:1"></div>
     <button class="btn" id="ob-done">I'm in</button>
     <button class="btn ghost" id="ob-back">Back</button>`;
@@ -199,10 +239,10 @@ function vOnboard(){
 
 function vLamp(){
   const r=room(S.me.room), lit=isLit(), n=peopleInRoom().length;
-  const known=S.me.knownRooms.includes(r.id);
+  const known=((S.me.visits||{})[r.id]||0)>=3;
   return `<div class="roomrow card" style="flex-direction:row">
       <span class="ic">${r.icon}</span>
-      <div class="t"><span class="mono">${known?"You're at your usual spot":"Looks like you're at"}</span><b>${esc(r.name)}</b><span class="mute">${esc(r.sub)}${S.roomConfirmed||known?"":" · from your RSVP"}</span></div>
+      <div class="t"><span class="mono">${known?"Your usual spot":"Looks like you're at"}</span><b>${esc(r.name)}</b><span class="mute">${esc(r.sub)}${known?" · you're here most Sundays":S.roomConfirmed?"":" · from your RSVP"}</span></div>
       <button class="link" id="changeroom">Not here?</button>
     </div>
     <div style="text-align:center;margin-top:6px">
@@ -217,7 +257,16 @@ function vLamp(){
       <label for="bring">What you're bringing tonight (optional)<input type="text" id="bring" maxlength="90" value="${esc(S.me.bringing)}" placeholder="Looking for someone to jam on AI and connection"></label>
     </div>`}
     ${S.saved.length?`<p class="mute">Saved for later: ${S.saved.map(id=>esc((findP(id)||{}).name||"")).filter(Boolean).join(", ")}</p>`:""}
-    <button class="link" id="editprof" style="align-self:center">Edit my profile</button>`;
+    <div style="display:flex;gap:18px;justify-content:center"><button class="link" id="editprof">Edit my profile</button>${S.tour==null?`<button class="link" id="tour">Watch the full journey</button>`:""}</div>`;
+}
+function vDone(){
+  const p=peopleInRoom()[0];
+  return `<div class="empty" style="flex:1;justify-content:center">
+    <div class="lampbig lit" style="width:90px;height:90px;cursor:default">${BULB}</div>
+    <h1>Phone down.</h1>
+    <p class="mute">Lamp did its job. Go say hi${p?` to ${esc(p.name.split(" ")[0])}`:""}. Your lamp stays on ${esc(untilText())}.</p>
+    <button class="btn ghost" id="donex" style="max-width:220px">Back to Lamp</button>
+  </div>`;
 }
 function findP(id){return peopleInRoom().find(p=>p.id===id);}
 
@@ -240,7 +289,7 @@ function vDeck(){
       <div class="hero">${av(x.name,92)}<h2>${esc(x.name)}${x.demo?'<span class="demo">demo</span>':""}</h2><p class="mute">${esc(x.line)}</p><span class="score">${x.score}% match</span></div>
       <div><span class="mono">Why you'd click</span><p style="margin-top:4px">${esc(whyText(x))}</p></div>
       <div class="quote"><span class="mono">Opener</span><br>“${esc(opener(x))}”</div>
-      ${!under&&sample&&!S.ai[x.id]?'<p class="mute" id="tailoring">Claude is tailoring this…</p>':""}
+      ${!under&&sample&&S.tour==null&&!S.ai[x.id]?'<p class="mute" id="tailoring">Claude is tailoring this…</p>':""}
     </div>`;
   return `<div style="display:flex;justify-content:space-between;align-items:center"><button class="link" id="closedeck">‹ Back</button><span class="mono">Top matches · ${S.di+1} of ${d.length}</span></div>
     <div class="deck">${d.length>1?card(q,true):""}${card(p,false)}</div>
@@ -260,7 +309,7 @@ function vPerson(id){
     <div style="display:flex;gap:14px;align-items:center">${av(p.name,64)}<div style="min-width:0"><h2>${esc(p.name)}${p.demo?'<span class="demo">demo</span>':""}</h2><p class="mute">${esc(p.line)}</p></div></div>
     <div><span class="mono">Why you'd click · ${p.score}%</span><p style="margin-top:4px">${esc(whyText(p))}</p></div>
     <div class="quote"><span class="mono">Opener</span><br>“${esc(opener(p))}”</div>
-    ${sample&&!S.ai[p.id]?'<p class="mute">Claude is tailoring this…</p>':""}
+    ${sample&&S.tour==null&&!S.ai[p.id]?'<p class="mute">Claude is tailoring this…</p>':""}
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><button class="btn ghost" id="psave" data-id="${esc(p.id)}">${S.saved.includes(p.id)?"Saved ✓":"Save for later"}</button><button class="btn" id="pclose">Go say hi</button></div>
   </div></div>`;
 }
@@ -300,7 +349,9 @@ function wire(){
     const name=isLink? v.replace(/^https?:\/\//,"").split(/[/?#]/).slice(1).join(" ").replace(/[-_]/g," ").trim()||"Imported event" : v;
     const id="r-"+hash(v).toString(36); S.rooms.push({id,name:isLink?`Event: ${name}`:name,sub:isLink?"Imported from event link":"Added by you",icon:isLink?"✦":"⌂"}); S.err=""; switchRoom(id);});
   const bg=$('sheetbg'); if(bg) bg.onclick=e=>{if(e.target===bg){S.sheet=null;S.err="";render();}};
-  on('pclose',()=>{S.sheet=null;render();toast("Phone down. Go say hi.");});
+  on('pclose',()=>{S.sheet=null;S.screen="done";render();});
+  on('donex',()=>{S.screen=null;S.tab="lamp";render();});
+  on('tour',startTour);
   on('psave',()=>{toggleSave($('psave').dataset.id);render();});
   on('closedeck',()=>{S.screen=null;render();});
   on('next',()=>step(1)); on('prev',()=>step(-1));
@@ -311,7 +362,7 @@ function toggleSave(id){const i=S.saved.indexOf(id); i<0?S.saved.push(id):S.save
 function switchRoom(id){S.me.room=id;S.roomConfirmed=true;if(!S.me.knownRooms.includes(id))S.me.knownRooms.push(id);S.sheet=null;save();render();}
 function toggleLamp(){
   if(isLit()){S.me.lit=false;S.me.until=null;}
-  else{S.me.lit=true;const m={"30m":30,"1h":60,"2h":120}[S.me.dur];S.me.until=m?Date.now()+m*60000:null;if(!S.me.knownRooms.includes(S.me.room))S.me.knownRooms.push(S.me.room);}
+  else{S.me.lit=true;const m={"30m":30,"1h":60,"2h":120}[S.me.dur];S.me.until=m?Date.now()+m*60000:null;S.me.visits=S.me.visits||{};S.me.visits[S.me.room]=(S.me.visits[S.me.room]||0)+1;}
   save();render();
 }
 function openDeck(){S.deck=peopleInRoom().slice(0,10);S.di=0;S.screen="deck";render();tailor(S.deck[0]);}
@@ -327,7 +378,7 @@ function drag(el){
 document.querySelectorAll('#tabs button').forEach(b=>b.onclick=()=>{S.tab=b.dataset.tab;S.screen=null;S.sheet=null;render();});
 
 async function tailor(p){
-  if(!p||!sample||S.ai[p.id]) return;
+  if(!p||!sample||S.tour!=null||S.ai[p.id]) return;
   const prompt=`Two people with their "lamp" on (both opted in to meet) are in the same room at an event. Write why they'd click and one opener.
 Person A (the reader): about "${S.me.about}"; into ${S.me.tags.join(", ")}${S.me.bringing?`; tonight bringing: ${S.me.bringing}`:""}.
 Person B: ${p.name}; "${p.line}"; into ${p.tags.join(", ")}.
@@ -340,9 +391,10 @@ Return JSON {"why": string, "opener": string}. "why": one or two plain sentences
 /* ---------- data ---------- */
 let chain=Promise.resolve();
 function save(){
+  if(S.tour!=null) return;
   try{localStorage.setItem('lamp-me',JSON.stringify(S.me));}catch(e){}
   if(!db||!S.myId) return;
-  const m=S.me, data={onboarded:m.onboarded,about:m.about.slice(0,100),tags:m.tags.slice(0,8),lit:isLit(),until:m.until,room:m.room,bringing:m.bringing.slice(0,90),knownRooms:m.knownRooms.slice(-10),updatedAt:Date.now()};
+  const m=S.me, data={onboarded:m.onboarded,about:m.about.slice(0,100),tags:m.tags.slice(0,8),lit:isLit(),until:m.until,room:m.room,bringing:m.bringing.slice(0,90),visits:m.visits||{},updatedAt:Date.now()};
   chain=chain.then(()=>db.doc("lamps/"+S.myId).set(data)).catch(()=>{});
 }
 async function boot(){
@@ -358,13 +410,14 @@ async function boot(){
   db.collection("lamps").onSnapshot(async snap=>{
     clearTimeout(timer);
     const next={}; snap.docs.forEach(d=>{const v=d.data(); if(v) next[d.id]=v;}); S.lamps=next;
-    if(first){first=false; const m=next[S.myId]; if(m) S.me={...S.me,onboarded:!!m.onboarded,about:m.about||S.me.about,tags:m.tags||S.me.tags,lit:!!m.lit,until:m.until||null,room:m.room||S.me.room,bringing:m.bringing||"",knownRooms:m.knownRooms||[]};}
+    if(first){first=false; const m=next[S.myId]; if(m) S.me={...S.me,onboarded:!!m.onboarded,about:m.about||S.me.about,tags:m.tags||S.me.tags,lit:!!m.lit,until:m.until||null,room:m.room||S.me.room,bringing:m.bringing||"",visits:m.visits||{}};}
     const ids=Object.keys(next).filter(id=>!S.names[id]);
     if(ids.length&&user){try{const ps=await user.profiles(ids);ids.forEach(id=>S.names[id]=(ps[id]&&ps[id].name)||"Someone");}catch(e){}}
-    if(!S.sheet&&S.screen!=="deck") render();
+    if(!S.sheet&&S.screen!=="deck"&&S.tour==null) render();
   },()=>clearTimeout(timer));
 }
 boot();
+if(location.hash==="#tour") startTour();
 </script>
 
 </body>
