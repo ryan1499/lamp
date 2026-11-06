@@ -1,0 +1,371 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+</head>
+<body>
+<title>Lamp</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: a phone app. On wide screens it sits in a phone frame; on a phone it fills the screen. Screens: onboarding (3 steps), My Lamp, Room, Top matches (swipe), person sheet, add-room sheet. Single deliberate night theme. */
+:root{
+  --ink:#121019; --bg:#17141f; --panel:#211d2c; --panel2:#2a2538; --line:#373149; --fg:#f4eee3; --mute:#a69fb6;
+  --lamp:#ffb547; --lamp-ink:#2a1a02; --soft:rgba(255,181,71,.13); --ok:#7fe0b0;
+  --display:"Bricolage Grotesque",ui-sans-serif,system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  color-scheme:dark;
+}
+html,body{background:var(--ink);color:var(--fg);height:100%}
+body{font-family:var(--display);font-size:16px;line-height:1.45;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px}
+.phone{position:relative;max-width:390px;height:min(820px,calc(100vh - 40px));margin:0 auto;background:var(--bg);border:8px solid #2c2838;border-radius:46px;overflow:hidden;display:flex;flex-direction:column}
+.notch{height:30px;flex:none;display:flex;justify-content:space-between;align-items:center;padding:0 26px;font-size:12px;font-weight:600}
+.notch i{width:90px;height:22px;border-radius:12px;background:#000;display:block}
+@media (max-width:480px){body{padding:0}.phone{border:none;border-radius:0;max-width:none;height:100%}.notch{display:none}}
+.scroll{flex:1;overflow-y:auto;padding:12px 18px 18px;display:flex;flex-direction:column;gap:14px}
+.mono{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--mute)}
+h1{font-size:34px;font-weight:800;line-height:1.02;margin:0;letter-spacing:-.02em;text-wrap:balance}
+h1 em{font-style:normal;color:var(--lamp)}
+h2{font-size:20px;font-weight:600;margin:0;text-wrap:balance}
+p{margin:0}
+.mute{color:var(--mute);font-size:14px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.chips{display:flex;flex-wrap:wrap;gap:7px}
+.chip{font:inherit;font-size:14px;border-radius:999px;padding:7px 12px;border:1px solid var(--line);background:transparent;color:var(--fg);cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--soft);border-color:var(--lamp);color:var(--lamp)}
+label{display:flex;flex-direction:column;gap:5px;font-size:13px;color:var(--mute)}
+input[type=text],input[type=url],textarea{font:inherit;font-size:15px;color:var(--fg);background:var(--ink);border:1px solid var(--line);border-radius:12px;padding:10px 11px;min-width:0;resize:none}
+.btn{font:inherit;font-size:16px;font-weight:600;border-radius:999px;padding:13px 16px;border:none;background:var(--lamp);color:var(--lamp-ink);cursor:pointer;width:100%}
+.btn.ghost{background:transparent;color:var(--fg);border:1px solid var(--line);font-weight:500}
+.btn.small{width:auto;padding:8px 14px;font-size:14px}
+.link{font:inherit;background:none;border:none;color:var(--lamp);cursor:pointer;padding:0;font-size:14px}
+button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--lamp);outline-offset:2px}
+.err{color:#ff8a7a;font-size:13px}
+.steps{display:flex;gap:6px}.steps i{flex:1;height:3px;border-radius:2px;background:var(--line)}.steps i.on{background:var(--lamp)}
+.lampbig{width:132px;height:132px;margin:6px auto;border-radius:50%;border:2px solid var(--line);background:transparent;cursor:pointer;display:grid;place-items:center;transition:all .35s}
+.lampbig svg{width:62px}
+.lampbig.lit{border-color:var(--lamp);background:radial-gradient(circle at 50% 42%,#ffe6b0,var(--lamp) 55%,#c97a10);box-shadow:0 0 70px rgba(255,181,71,.5),0 0 0 14px rgba(255,181,71,.07)}
+.lampbig.lit svg path{stroke:var(--lamp-ink)}
+.roomrow{display:flex;align-items:center;gap:10px}
+.roomrow .ic{width:38px;height:38px;border-radius:12px;background:var(--panel2);display:grid;place-items:center;flex:none;font-size:18px}
+.roomrow .t{flex:1;min-width:0}
+.roomrow .t b{display:block;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.seg{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.seg button{font:inherit;font-size:13px;padding:9px 4px;border-radius:12px;border:1px solid var(--line);background:transparent;color:var(--fg);cursor:pointer}
+.seg button[aria-pressed="true"]{border-color:var(--lamp);color:var(--lamp);background:var(--soft)}
+.av{border-radius:50%;display:grid;place-items:center;font-weight:700;color:#1a1424;flex:none}
+.person{display:flex;gap:12px;align-items:center;padding:11px 2px;border:none;border-bottom:1px solid var(--line);background:none;color:var(--fg);font:inherit;text-align:left;cursor:pointer;width:100%}
+.person:last-child{border-bottom:none}
+.person .t{flex:1;min-width:0}
+.person .t b{font-weight:600}
+.person .t span{display:block;font-size:13px;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.person .t .why{color:var(--lamp)}
+.score{font-family:var(--mono);font-size:12px;color:var(--lamp);flex:none}
+.tag{color:var(--lamp)}
+.demo{font-family:var(--mono);font-size:9.5px;color:var(--mute);border:1px dashed var(--line);border-radius:6px;padding:1px 5px;margin-left:6px;vertical-align:middle;text-transform:uppercase;letter-spacing:.04em}
+.quote{background:var(--ink);border-radius:12px;padding:11px 12px;font-size:15px}
+.tabs{flex:none;display:grid;grid-template-columns:1fr 1fr;border-top:1px solid var(--line);background:var(--bg);padding:8px 10px calc(10px + env(safe-area-inset-bottom,0px))}
+.tabs button{font:inherit;font-size:13px;color:var(--mute);background:none;border:none;padding:6px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px}
+.tabs button[aria-current="page"]{color:var(--lamp)}
+.tabs svg{width:22px;height:22px}
+.sheetbg{position:absolute;inset:0;background:rgba(5,4,10,.6);display:flex;align-items:flex-end;z-index:5}
+.sheet{background:var(--panel);border-radius:24px 24px 0 0;padding:10px 18px 22px;width:100%;max-height:88%;overflow-y:auto;display:flex;flex-direction:column;gap:12px}
+.grab{width:40px;height:4px;border-radius:2px;background:var(--line);margin:0 auto 4px}
+.deck{position:relative;height:430px;touch-action:pan-y}
+.swipe{position:absolute;inset:0;background:var(--panel);border:1px solid var(--line);border-radius:24px;padding:18px;display:flex;flex-direction:column;gap:12px;user-select:none;cursor:grab;transition:transform .25s ease,opacity .25s}
+.swipe.under{transform:scale(.95) translateY(12px);opacity:.5;pointer-events:none}
+.swipe .hero{display:flex;flex-direction:column;align-items:center;gap:8px;text-align:center;padding-top:6px}
+.dots{display:flex;gap:5px;justify-content:center}.dots i{width:6px;height:6px;border-radius:50%;background:var(--line)}.dots i.on{background:var(--lamp)}
+.toast{position:absolute;left:50%;bottom:86px;transform:translateX(-50%);background:var(--fg);color:var(--ink);border-radius:999px;padding:8px 14px;font-size:13px;font-weight:600;z-index:9;white-space:nowrap}
+.empty{text-align:center;padding:24px 8px;display:flex;flex-direction:column;gap:8px;align-items:center}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+
+<div class="phone" id="phone">
+  <div class="notch" aria-hidden="true"><span>9:41</span><i></i><span>●●●</span></div>
+  <div class="scroll" id="screen"><p class="mute">Lamp is starting…</p></div>
+  <div class="tabs" id="tabs" hidden>
+    <button data-tab="lamp"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3Z"/></svg>My Lamp</button>
+    <button data-tab="room"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="8" cy="9" r="3"/><circle cx="16.5" cy="10" r="2.5"/><path d="M3 19c.6-3 2.6-4.5 5-4.5s4.4 1.5 5 4.5M13.5 18.5c.5-2.2 1.7-3.4 3.3-3.4 1.7 0 3 1.2 3.5 3.4"/></svg>Room</button>
+  </div>
+</div>
+
+<script>
+const BULB = `<svg viewBox="0 0 24 24" fill="none" stroke="#f4eee3" stroke-width="1.5" aria-hidden="true"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.6.5 1 1.2 1 2.1h5c0-.9.4-1.6 1-2.1A6 6 0 0 0 12 3Z"/></svg>`;
+const TAGS = ["AI safety","AI compute","Tools for thought","New hardware","Music","Games","Social AI","Design","Robotics","Voice AI","Startups","Decentralization","Writing","Consumer apps","Philosophy","Climbing"];
+const ROOMS = [
+  {id:"punk-hack-night", name:"Punk Software Hack Night", sub:"Luma event · 292 Ivy St", icon:"✦", demo:true},
+  {id:"sightglass-soma", name:"Sightglass Coffee", sub:"Café · SoMa", icon:"☕"},
+  {id:"ivy-st-floor2", name:"292 Ivy St, 2nd floor", sub:"Shared space", icon:"▦"}
+];
+/* Demo room: tonight's attendees, using only what they made public on Luma or X. Names, no photos. */
+const DEMO = [
+  ["d1","Inha","Maps how sovereign capital becomes AI compute",["AI compute","Decentralization"]],
+  ["d2","Oscar","Open, distributed AI training at Prime Intellect",["AI compute","Decentralization","AI safety"]],
+  ["d3","Tanuj","Building a new kind of computer at Daylight",["New hardware","Tools for thought","Design"]],
+  ["d4","Wenxin","Wants to replace phones with a better human–agent interface",["New hardware","Social AI","Startups"]],
+  ["d5","Chris","Founder of Button Computer, ex-Apple",["New hardware","Design","Startups"]],
+  ["d6","Claudio","Building a one-dollar computer",["New hardware","Decentralization"]],
+  ["d7","Chaeyeon","Makes the mind's invisible states perceptible with code and music",["Music","Tools for thought"]],
+  ["d8","Minki","Physics and philosophy; building an AI canvas for deep thinking",["Tools for thought","Philosophy","Design"]],
+  ["d9","Wen","AI safety researcher, formerly a platform integrity lead",["AI safety","Social AI","Climbing"]],
+  ["d10","Kaelan","Roboticist who used to work on AI safety",["Robotics","AI safety"]],
+  ["d11","Shubham","Trains social LLMs",["Social AI","Writing"]],
+  ["d12","Liam","Life coach and improv instructor",["Social AI","Writing","Philosophy"]],
+  ["d13","Akim","16-year-old game developer",["Games","Startups"]],
+  ["d14","Sophia","Bootstrapped consumer founder with a games podcast",["Games","Consumer apps","Startups"]],
+  ["d15","Akash","AI for voice, data infra, and model behavior",["Voice AI","AI safety"]],
+  ["d16","Elvis","Ex-VC exploring voice AI agents",["Voice AI","Startups"]],
+  ["d17","Federico","UI engineer at Apple who codes and DJs",["Music","Design"]],
+  ["d18","Laurie","Author, journalist, and narrative designer",["Writing","Philosophy"]]
+].map(([id,name,line,tags])=>({id,name,line,tags,room:"punk-hack-night",demo:true}));
+const PAL=["#ffb547","#7fe0b0","#b9a3ff","#7fb5ff","#ff9ac4","#ff9a66","#ffe07a","#8fe3ff"];
+
+const S = {tab:"lamp", screen:null, step:0, myId:null, lamps:{}, names:{},
+  me:{onboarded:false, about:"", tags:[], links:{website:"",instagram:"",linkedin:"",x:""}, lit:false, until:null, dur:"1h", bringing:"", room:"punk-hack-night", knownRooms:[]},
+  rooms:ROOMS.slice(), deck:[], di:0, saved:[], sheet:null, err:"", ai:{}, roomConfirmed:false};
+let db=null, user=null, sample=null;
+
+function hash(s){let h=2166136261;for(const c of s){h^=c.charCodeAt(0);h=Math.imul(h,16777619);}return h>>>0;}
+function esc(t){const d=document.createElement('div');d.textContent=t==null?"":String(t);return d.innerHTML;}
+function initials(n){return n.split(/\s+/).filter(Boolean).slice(0,2).map(w=>w[0]).join("").toUpperCase()||"?";}
+function av(name,size){return `<span class="av" aria-hidden="true" style="width:${size}px;height:${size}px;font-size:${Math.round(size*.36)}px;background:${PAL[hash(name)%PAL.length]}">${esc(initials(name))}</span>`;}
+function room(id){return S.rooms.find(r=>r.id===id)||ROOMS[0];}
+function isLit(){return S.me.lit && (!S.me.until || S.me.until>Date.now());}
+function untilText(){if(!S.me.until) return "until you turn it off"; const d=new Date(S.me.until); return "until "+d.toLocaleTimeString([], {hour:"numeric",minute:"2-digit"});}
+
+function peopleInRoom(){
+  const real = Object.entries(S.lamps).filter(([id,l])=>id!==S.myId && l.lit && (!l.until||l.until>Date.now()) && l.room===S.me.room)
+    .map(([id,l])=>({id,name:S.names[id]||"Someone",line:l.bringing||l.about||"Has their lamp on",tags:l.tags||[],real:true}));
+  const demo = DEMO.filter(p=>p.room===S.me.room);
+  return [...real,...demo].map(p=>{const shared=p.tags.filter(t=>S.me.tags.includes(t));return {...p,shared,score:Math.min(97,(shared.length?55:34)+shared.length*16+(hash(p.id)%9)+(p.real?6:0))};})
+    .sort((a,b)=>b.score-a.score);
+}
+function whyText(p){ if(S.ai[p.id]) return S.ai[p.id].why;
+  return p.shared.length? `You both care about ${p.shared.join(" and ").toLowerCase()}. ${p.name.split(" ")[0]}: ${p.line.charAt(0).toLowerCase()+p.line.slice(1)}.` : `Different world from yours: ${p.line.charAt(0).toLowerCase()+p.line.slice(1)}. Could be a good outside view.`; }
+function opener(p){ if(S.ai[p.id]) return S.ai[p.id].opener;
+  const t=(p.shared[0]||p.tags[0]||"").toLowerCase();
+  return ({"ai compute":"Is decentralized compute a real counterweight to the big clusters?","new hardware":"What's the first thing your device refuses to do?","tools for thought":"What does a thought look like when you draw it?","ai safety":"Which is harder to keep safe, a feed or a robot?","games":"What game would you build if nobody could monetize it?","music":"Do you think in songs or in screens?","social ai":"What does a chatbot do that no good conversationalist would?","voice ai":"Would you rather talk to your computer or have it shut up?","design":"What interface do you think should be deleted?","writing":"What are you writing that isn't code?","philosophy":"What's a question you can't stop thinking about lately?","startups":"What are you building that you'd build even if it never made money?","decentralization":"What would you take back from big tech first?"})[t]||"What are you working on tonight?"; }
+
+/* ---------- render ---------- */
+function render(){
+  const tabs=document.getElementById('tabs');
+  tabs.hidden=!S.me.onboarded;
+  tabs.querySelectorAll('button').forEach(b=>b.setAttribute('aria-current',b.dataset.tab===S.tab&&!S.screen?'page':'false'));
+  const el=document.getElementById('screen');
+  let html = !S.me.onboarded? vOnboard() : S.screen==="deck"? vDeck() : S.tab==="room"? vRoom() : vLamp();
+  if(S.sheet) html += S.sheet==="add"? vAddRoom() : vPerson(S.sheet);
+  el.innerHTML = html;
+  wire();
+}
+
+function vOnboard(){
+  const st=`<div class="steps">${[0,1,2].map(i=>`<i class="${i<=S.step?"on":""}"></i>`).join("")}</div>`;
+  if(S.step===0) return `${st}
+    <div style="margin-top:20px"><span class="mono">Welcome to Lamp</span></div>
+    <h1>Meet the people <em>in the room</em> you'd actually hit it off with.</h1>
+    <div class="card">
+      <div class="roomrow"><span class="ic">${BULB}</span><div class="t"><b>Light your lamp</b><span class="mute">It means you're open to meeting someone here, right now.</span></div></div>
+      <div class="roomrow"><span class="ic">👥</span><div class="t"><b>See who's in your room</b><span class="mute">Only people at the same event, café, or floor whose lamps are also on.</span></div></div>
+      <div class="roomrow"><span class="ic">👋</span><div class="t"><b>Walk over and talk</b><span class="mute">Lamp tells you why you'd click and gives you an opener. Then put your phone away.</span></div></div>
+    </div>
+    <div style="flex:1"></div>
+    <button class="btn" id="ob-next">Set up my lamp</button>`;
+  if(S.step===1) return `${st}
+    <h2 style="margin-top:12px">What should people know about you?</h2>
+    <p class="mute">You set this up once. Share only what you want; Lamp reads public profiles you link and nothing else.</p>
+    <label for="o-about">One line about you<input type="text" id="o-about" maxlength="100" value="${esc(S.me.about)}" placeholder="Writer who builds; thinking about AI and people"></label>
+    <div class="card"><span class="mono">Link public profiles (optional)</span>
+      ${["website","instagram","linkedin","x"].map(k=>`<label for="o-${k}">${{website:"Website",instagram:"Instagram",linkedin:"LinkedIn",x:"X"}[k]}<input type="text" id="o-${k}" value="${esc(S.me.links[k])}" placeholder="${{website:"yoursite.com",instagram:"@handle",linkedin:"linkedin.com/in/you",x:"@handle"}[k]}"></label>`).join("")}
+    </div>
+    <div><span class="mono">Things you'd happily talk about</span></div>
+    <div class="chips">${TAGS.map(t=>`<button class="chip" data-t="${esc(t)}" aria-pressed="${S.me.tags.includes(t)}">${esc(t)}</button>`).join("")}</div>
+    ${S.err?`<p class="err" role="alert">${esc(S.err)}</p>`:""}
+    <button class="btn" id="ob-next">Continue</button>`;
+  return `${st}
+    <h2 style="margin-top:12px">What lighting your lamp shares</h2>
+    <div class="card">
+      <p>When your lamp is on, people in the same room whose lamps are also on can see:</p>
+      <p class="mute">• Your name and avatar<br>• Your one line and interests<br>• Why Lamp thinks you'd click</p>
+      <p class="mute">When your lamp is off, you're invisible. Nobody is notified when you look at them or walk over.</p>
+    </div>
+    <div class="card" style="flex-direction:row;align-items:center;gap:12px">${av(S.names[S.myId]||"You",48)}<div><b>${esc(S.names[S.myId]||"You")}</b><p class="mute">${esc(S.me.about||"No one-liner yet")}</p></div></div>
+    <div style="flex:1"></div>
+    <button class="btn" id="ob-done">I'm in</button>
+    <button class="btn ghost" id="ob-back">Back</button>`;
+}
+
+function vLamp(){
+  const r=room(S.me.room), lit=isLit(), n=peopleInRoom().length;
+  const known=S.me.knownRooms.includes(r.id);
+  return `<div class="roomrow card" style="flex-direction:row">
+      <span class="ic">${r.icon}</span>
+      <div class="t"><span class="mono">${known?"You're at your usual spot":"Looks like you're at"}</span><b>${esc(r.name)}</b><span class="mute">${esc(r.sub)}${S.roomConfirmed||known?"":" · from your RSVP"}</span></div>
+      <button class="link" id="changeroom">Not here?</button>
+    </div>
+    <div style="text-align:center;margin-top:6px">
+      <button class="lampbig ${lit?"lit":""}" id="bulb" aria-pressed="${lit}" aria-label="${lit?"Turn your lamp off":"Light your lamp"}">${BULB}</button>
+      <h1 style="margin-top:10px">${lit?`Your lamp is <em>on</em>.`:`Lamp's off.`}</h1>
+      <p class="mute" style="margin-top:6px">${lit?`Visible to people here with their lamps on, ${untilText()}.`:"Tap the lamp when you're open to meeting someone here."}</p>
+    </div>
+    ${lit?`<button class="btn" id="top">Show my top matches · ${n}</button>
+      <button class="btn ghost" id="toroom">See everyone in the room</button>`:
+    `<div class="card"><span class="mono">Keep it on for</span>
+      <div class="seg">${["30m","1h","2h","off"].map(d=>`<button data-d="${d}" aria-pressed="${S.me.dur===d}">${d==="off"?"Until off":d}</button>`).join("")}</div>
+      <label for="bring">What you're bringing tonight (optional)<input type="text" id="bring" maxlength="90" value="${esc(S.me.bringing)}" placeholder="Looking for someone to jam on AI and connection"></label>
+    </div>`}
+    ${S.saved.length?`<p class="mute">Saved for later: ${S.saved.map(id=>esc((findP(id)||{}).name||"")).filter(Boolean).join(", ")}</p>`:""}
+    <button class="link" id="editprof" style="align-self:center">Edit my profile</button>`;
+}
+function findP(id){return peopleInRoom().find(p=>p.id===id);}
+
+function vRoom(){
+  const r=room(S.me.room), list=peopleInRoom(), lit=isLit();
+  return `<div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+      <div style="min-width:0"><span class="mono">Your room</span><h2>${esc(r.name)}</h2><p class="mute">${list.length} lamps lit · ${esc(r.sub)}</p></div>
+      <button class="btn small" id="addroom" aria-label="Add or switch room">＋ Room</button>
+    </div>
+    ${!lit?`<div class="card"><p>Your lamp is off, so nobody here can see you. You can still look around.</p><button class="btn small" id="lightnow" style="align-self:flex-start">Light my lamp</button></div>`:""}
+    ${list.length?`<button class="btn" id="top">Show my top matches</button>
+    <div class="card" style="padding:4px 12px">${list.map(p=>`<button class="person" data-id="${esc(p.id)}">${av(p.name,42)}<span class="t"><b>${esc(p.name)}</b>${p.demo?'<span class="demo">demo</span>':""}<span>${esc(p.line)}</span>${p.shared.length?`<span class="why">Both into ${esc(p.shared.join(", ").toLowerCase())}</span>`:""}</span><span class="score">${p.score}%</span></button>`).join("")}</div>`
+    :`<div class="empty"><h2>No lamps lit here yet</h2><p class="mute">When someone in ${esc(r.name)} lights their lamp, they'll show up here.</p></div>`}`;
+}
+
+function vDeck(){
+  const d=S.deck; if(!d.length) return `<div class="empty"><h2>No matches yet</h2><p class="mute">Nobody here has their lamp on yet.</p><button class="btn ghost" id="closedeck">Back</button></div>`;
+  const p=d[S.di], q=d[(S.di+1)%d.length];
+  const card=(x,under)=>`<div class="swipe ${under?"under":""}" ${under?"":'id="sw"'}>
+      <div class="hero">${av(x.name,92)}<h2>${esc(x.name)}${x.demo?'<span class="demo">demo</span>':""}</h2><p class="mute">${esc(x.line)}</p><span class="score">${x.score}% match</span></div>
+      <div><span class="mono">Why you'd click</span><p style="margin-top:4px">${esc(whyText(x))}</p></div>
+      <div class="quote"><span class="mono">Opener</span><br>“${esc(opener(x))}”</div>
+      ${!under&&sample&&!S.ai[x.id]?'<p class="mute" id="tailoring">Claude is tailoring this…</p>':""}
+    </div>`;
+  return `<div style="display:flex;justify-content:space-between;align-items:center"><button class="link" id="closedeck">‹ Back</button><span class="mono">Top matches · ${S.di+1} of ${d.length}</span></div>
+    <div class="deck">${d.length>1?card(q,true):""}${card(p,false)}</div>
+    <div class="dots">${d.slice(0,10).map((_,i)=>`<i class="${i===S.di?"on":""}"></i>`).join("")}</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+      <button class="btn ghost" id="prev">‹ Previous</button>
+      <button class="btn ghost" id="save">${S.saved.includes(p.id)?"Saved ✓":"Save"}</button>
+      <button class="btn ghost" id="next">Not now ›</button>
+    </div>
+    <p class="mute" style="text-align:center">Swipe to browse. “Not now” isn't a no; they stay in your room list. Nobody is notified.</p>`;
+}
+
+function vPerson(id){
+  const p=findP(id); if(!p) return "";
+  return `<div class="sheetbg" id="sheetbg"><div class="sheet" role="dialog" aria-label="${esc(p.name)}">
+    <div class="grab"></div>
+    <div style="display:flex;gap:14px;align-items:center">${av(p.name,64)}<div style="min-width:0"><h2>${esc(p.name)}${p.demo?'<span class="demo">demo</span>':""}</h2><p class="mute">${esc(p.line)}</p></div></div>
+    <div><span class="mono">Why you'd click · ${p.score}%</span><p style="margin-top:4px">${esc(whyText(p))}</p></div>
+    <div class="quote"><span class="mono">Opener</span><br>“${esc(opener(p))}”</div>
+    ${sample&&!S.ai[p.id]?'<p class="mute">Claude is tailoring this…</p>':""}
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><button class="btn ghost" id="psave" data-id="${esc(p.id)}">${S.saved.includes(p.id)?"Saved ✓":"Save for later"}</button><button class="btn" id="pclose">Go say hi</button></div>
+  </div></div>`;
+}
+
+function vAddRoom(){
+  return `<div class="sheetbg" id="sheetbg"><div class="sheet" role="dialog" aria-label="Add a room">
+    <div class="grab"></div><h2>Which room are you in?</h2>
+    <p class="mute">Lamp only shows people in the same room, so the café downstairs doesn't mix with the club upstairs.</p>
+    ${S.rooms.map(r=>`<button class="person" data-room="${esc(r.id)}"><span class="roomrow"><span class="ic">${r.icon}</span></span><span class="t"><b>${esc(r.name)}</b><span>${esc(r.sub)}</span></span>${r.id===S.me.room?'<span class="score">Here</span>':""}</button>`).join("")}
+    <label for="newroom">Paste an event link or name a place<input type="text" id="newroom" placeholder="luma.com/your-event or “Blue Bottle, Hayes”"></label>
+    ${S.err?`<p class="err" role="alert">${esc(S.err)}</p>`:""}
+    <button class="btn" id="addgo">Add room</button>
+  </div></div>`;
+}
+
+/* ---------- wiring ---------- */
+function $(id){return document.getElementById(id);}
+function on(id,fn){const b=$(id); if(b) b.onclick=fn;}
+function toast(t){const p=$('phone');const d=document.createElement('div');d.className='toast';d.textContent=t;p.appendChild(d);setTimeout(()=>d.remove(),1800);}
+function wire(){
+  document.querySelectorAll('.chip').forEach(b=>b.onclick=()=>{const t=b.dataset.t,a=S.me.tags,i=a.indexOf(t);i<0?a.push(t):a.splice(i,1);b.setAttribute('aria-pressed',i<0);S.err="";});
+  ["about"].forEach(k=>{const i=$('o-'+k); if(i) i.oninput=()=>S.me.about=i.value;});
+  ["website","instagram","linkedin","x"].forEach(k=>{const i=$('o-'+k); if(i) i.oninput=()=>S.me.links[k]=i.value;});
+  on('ob-next',()=>{ if(S.step===1&&!S.me.tags.length){S.err="Pick at least one thing you'd happily talk about.";render();return;} S.err="";S.step++;render();});
+  on('ob-back',()=>{S.step=1;render();});
+  on('ob-done',()=>{S.me.onboarded=true;S.tab="lamp";save();render();});
+  document.querySelectorAll('.seg button').forEach(b=>b.onclick=()=>{S.me.dur=b.dataset.d;render();});
+  const br=$('bring'); if(br) br.oninput=()=>S.me.bringing=br.value;
+  on('bulb',toggleLamp); on('lightnow',()=>{S.tab="lamp";render();});
+  on('changeroom',()=>{S.sheet="add";render();}); on('addroom',()=>{S.sheet="add";render();});
+  on('top',openDeck); on('toroom',()=>{S.tab="room";render();});
+  on('editprof',()=>{S.me.onboarded=false;S.step=1;render();});
+  document.querySelectorAll('.person[data-id]').forEach(b=>b.onclick=()=>{S.sheet=b.dataset.id;render();tailor(findP(b.dataset.id));});
+  document.querySelectorAll('.person[data-room]').forEach(b=>b.onclick=()=>switchRoom(b.dataset.room));
+  on('addgo',()=>{const v=($('newroom').value||"").trim(); if(!v){S.err="Paste a link or type a place name.";render();return;}
+    const isLink=/luma\.com|lu\.ma|partiful|eventbrite/i.test(v);
+    const name=isLink? v.replace(/^https?:\/\//,"").split(/[/?#]/).slice(1).join(" ").replace(/[-_]/g," ").trim()||"Imported event" : v;
+    const id="r-"+hash(v).toString(36); S.rooms.push({id,name:isLink?`Event: ${name}`:name,sub:isLink?"Imported from event link":"Added by you",icon:isLink?"✦":"⌂"}); S.err=""; switchRoom(id);});
+  const bg=$('sheetbg'); if(bg) bg.onclick=e=>{if(e.target===bg){S.sheet=null;S.err="";render();}};
+  on('pclose',()=>{S.sheet=null;render();toast("Phone down. Go say hi.");});
+  on('psave',()=>{toggleSave($('psave').dataset.id);render();});
+  on('closedeck',()=>{S.screen=null;render();});
+  on('next',()=>step(1)); on('prev',()=>step(-1));
+  on('save',()=>{toggleSave(S.deck[S.di].id);render();});
+  const sw=$('sw'); if(sw) drag(sw);
+}
+function toggleSave(id){const i=S.saved.indexOf(id); i<0?S.saved.push(id):S.saved.splice(i,1); if(i<0) toast("Saved for later");}
+function switchRoom(id){S.me.room=id;S.roomConfirmed=true;if(!S.me.knownRooms.includes(id))S.me.knownRooms.push(id);S.sheet=null;save();render();}
+function toggleLamp(){
+  if(isLit()){S.me.lit=false;S.me.until=null;}
+  else{S.me.lit=true;const m={"30m":30,"1h":60,"2h":120}[S.me.dur];S.me.until=m?Date.now()+m*60000:null;if(!S.me.knownRooms.includes(S.me.room))S.me.knownRooms.push(S.me.room);}
+  save();render();
+}
+function openDeck(){S.deck=peopleInRoom().slice(0,10);S.di=0;S.screen="deck";render();tailor(S.deck[0]);}
+function step(n){if(!S.deck.length)return;S.di=(S.di+n+S.deck.length)%S.deck.length;render();tailor(S.deck[S.di]);}
+function drag(el){
+  let x0=null,dx=0;
+  el.addEventListener('pointerdown',e=>{x0=e.clientX;el.setPointerCapture(e.pointerId);el.style.transition='none';});
+  el.addEventListener('pointermove',e=>{if(x0===null)return;dx=e.clientX-x0;el.style.transform=`translateX(${dx}px) rotate(${dx/22}deg)`;});
+  const end=()=>{if(x0===null)return;el.style.transition='';x0=null;
+    if(Math.abs(dx)>80){el.style.transform=`translateX(${dx>0?420:-420}px)`;const n=dx>0?-1:1;dx=0;setTimeout(()=>step(n),180);} else {el.style.transform='';dx=0;}};
+  el.addEventListener('pointerup',end); el.addEventListener('pointercancel',end);
+}
+document.querySelectorAll('#tabs button').forEach(b=>b.onclick=()=>{S.tab=b.dataset.tab;S.screen=null;S.sheet=null;render();});
+
+async function tailor(p){
+  if(!p||!sample||S.ai[p.id]) return;
+  const prompt=`Two people with their "lamp" on (both opted in to meet) are in the same room at an event. Write why they'd click and one opener.
+Person A (the reader): about "${S.me.about}"; into ${S.me.tags.join(", ")}${S.me.bringing?`; tonight bringing: ${S.me.bringing}`:""}.
+Person B: ${p.name}; "${p.line}"; into ${p.tags.join(", ")}.
+Return JSON {"why": string, "opener": string}. "why": one or two plain sentences addressed to A ("You both…"), specific, no hype. "opener": one short curious question A can say out loud, under 15 words, no emoji.`;
+  try{const r=await sample.json(prompt,{modelTier:"quick"}); if(r&&typeof r.why==="string"&&typeof r.opener==="string") S.ai[p.id]={why:r.why.slice(0,240),opener:r.opener.slice(0,140)};}
+  catch(e){ if(e&&e.code==="not_granted") sample=null; }
+  render();
+}
+
+/* ---------- data ---------- */
+let chain=Promise.resolve();
+function save(){
+  try{localStorage.setItem('lamp-me',JSON.stringify(S.me));}catch(e){}
+  if(!db||!S.myId) return;
+  const m=S.me, data={onboarded:m.onboarded,about:m.about.slice(0,100),tags:m.tags.slice(0,8),lit:isLit(),until:m.until,room:m.room,bringing:m.bringing.slice(0,90),knownRooms:m.knownRooms.slice(-10),updatedAt:Date.now()};
+  chain=chain.then(()=>db.doc("lamps/"+S.myId).set(data)).catch(()=>{});
+}
+async function boot(){
+  try{const l=JSON.parse(localStorage.getItem('lamp-me')||"null"); if(l) S.me={...S.me,...l,links:{...S.me.links,...(l.links||{})}};}catch(e){}
+  render();
+  if(!(window.claude&&claude.use)) return;
+  const timer=setTimeout(()=>{},10000);
+  try{[db,user,sample]=await Promise.all([claude.use("db"),claude.use("user"),claude.use("sample")]);}catch(e){}
+  if(user){try{S.myId=await user.id();}catch(e){} try{const me=await user.me();if(me&&me.name&&S.myId)S.names[S.myId]=me.name;}catch(e){}}
+  render();
+  if(!db||!S.myId){clearTimeout(timer);return;}
+  let first=true;
+  db.collection("lamps").onSnapshot(async snap=>{
+    clearTimeout(timer);
+    const next={}; snap.docs.forEach(d=>{const v=d.data(); if(v) next[d.id]=v;}); S.lamps=next;
+    if(first){first=false; const m=next[S.myId]; if(m) S.me={...S.me,onboarded:!!m.onboarded,about:m.about||S.me.about,tags:m.tags||S.me.tags,lit:!!m.lit,until:m.until||null,room:m.room||S.me.room,bringing:m.bringing||"",knownRooms:m.knownRooms||[]};}
+    const ids=Object.keys(next).filter(id=>!S.names[id]);
+    if(ids.length&&user){try{const ps=await user.profiles(ids);ids.forEach(id=>S.names[id]=(ps[id]&&ps[id].name)||"Someone");}catch(e){}}
+    if(!S.sheet&&S.screen!=="deck") render();
+  },()=>clearTimeout(timer));
+}
+boot();
+</script>
+
+</body>
+</html>
